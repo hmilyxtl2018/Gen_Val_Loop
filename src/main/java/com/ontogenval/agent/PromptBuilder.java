@@ -2,19 +2,27 @@ package com.ontogenval.agent;
 
 import com.ontogenval.core.Candidate;
 import com.ontogenval.core.RoundInput;
+import com.ontogenval.core.StatementKind;
 import com.ontogenval.core.TaskSpec;
+
+import java.util.stream.Collectors;
 
 final class PromptBuilder {
     private PromptBuilder() {
     }
 
     static String generationPrompt(RoundInput input) {
+        // CRITERION statements are for ValAgent only — exclude them from GenAgent's view
+        String ontologyForGen = input.ontology().statements().stream()
+                .filter(s -> s.kind() != StatementKind.CRITERION)
+                .map(s -> "%s: %s %s %s".formatted(s.kind(), s.subject(), s.predicate(), s.object()))
+                .collect(Collectors.joining("\n"));
         return """
                 You are GenAgent.
                 Generate or revise one candidate for this task.
 
                 Round: %d
-                Input ontology:
+                Input ontology (facts, concepts and goals only):
                 %s
 
                 Previous candidate:
@@ -24,7 +32,7 @@ final class PromptBuilder {
                 %s
                 """.formatted(
                 input.roundIndex(),
-                input.ontology().render(),
+                ontologyForGen,
                 input.previousCandidate() == null ? "None" : input.previousCandidate().content(),
                 input.previousValidation() == null ? "None" : input.previousValidation().feedback()
         );

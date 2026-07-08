@@ -8,10 +8,13 @@ import com.ontogenval.core.TaskSpec;
 import com.ontogenval.llm.MockModelClient;
 import com.ontogenval.llm.ModelClient;
 
+import org.junit.jupiter.api.Test;
+
 import java.util.List;
 
-public final class RoundOntologyLoopTest {
-    public static void main(String[] args) {
+public class RoundOntologyLoopTest {
+    @Test
+    void roundOntologyLoop() {
         ModelClient model = new MockModelClient();
         GenValLoop loop = new GenValLoop(
                 new GenAgent(model),
@@ -51,7 +54,6 @@ public final class RoundOntologyLoopTest {
         assertContainsKind(second.input().ontology().statements(), StatementKind.FEEDBACK, "round 2 input should carry feedback");
         assertContainsKind(second.output().ontology().statements(), StatementKind.DECISION, "round 2 output should contain decision");
 
-        System.out.println("RoundOntologyLoopTest passed");
     }
 
     private static void assertContainsKind(

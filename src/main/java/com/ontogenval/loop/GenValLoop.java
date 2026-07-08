@@ -3,6 +3,7 @@ package com.ontogenval.loop;
 import com.ontogenval.agent.GenAgent;
 import com.ontogenval.agent.ValAgent;
 import com.ontogenval.core.Candidate;
+import com.ontogenval.core.CandidateEvaluation;
 import com.ontogenval.core.OntologyFrame;
 import com.ontogenval.core.OntologyStatement;
 import com.ontogenval.core.RoundInput;
@@ -43,8 +44,20 @@ public final class GenValLoop {
                     previousValidation,
                     buildInputOntology(task, round, previousCandidate, previousValidation)
             );
-            Candidate candidate = genAgent.generate(input);
-            ValidationResult validation = valAgent.validate(task, candidate);
+
+            // Generate candidatesPerRound candidates, validate all, pick the best score
+            List<CandidateEvaluation> allEvaluations = new ArrayList<>();
+            for (int c = 0; c < config.candidatesPerRound(); c++) {
+                Candidate candidate = genAgent.generate(input);
+                ValidationResult validation = valAgent.validate(task, candidate);
+                allEvaluations.add(new CandidateEvaluation(candidate, validation));
+            }
+            CandidateEvaluation best = allEvaluations.stream()
+                    .max(java.util.Comparator.comparingDouble(e -> e.validation().score()))
+                    .orElseThrow();
+
+            Candidate candidate   = best.candidate();
+            ValidationResult validation = best.validation();
             boolean converged = convergenceRule.converged(validation);
 
             RoundProcess process = new RoundProcess(round, buildProcessOntology(round, validation, converged));
@@ -53,7 +66,8 @@ public final class GenValLoop {
                     candidate,
                     validation,
                     converged,
-                    buildOutputOntology(round, candidate, validation, converged)
+                    buildOutputOntology(round, candidate, validation, converged),
+                    allEvaluations
             );
             finalTrace = new RoundTrace(input, process, output);
             traces.add(finalTrace);
